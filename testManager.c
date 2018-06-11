@@ -129,8 +129,16 @@ static uint8_t menuAuto ( menu_el * const el, const char * logFile )
 
 	flag.validLogFile = 0;
 
-	for ( i = 0; el[ i ].menu != NULL || el[ i ].test != NULL || el[ i ].comment != NULL; i++ )
+	i = 0;
+	while ( 1 )
 	{
+		if ( ( el[ i ].menu == NULL ) && 
+			( el[ i ].test == NULL ) && 
+			( el[ i ].comment == NULL ) )
+		{
+			break;
+		}
+
 		if ( el[ i ].menu != NULL )
 		{
 			menuAuto ( el[ i ].menu, logFile );
@@ -227,6 +235,7 @@ static uint8_t menuAuto ( menu_el * const el, const char * logFile )
 			}
 			printf ( "\n" );
 		}
+		i++;
 	}
 
 	return ( 0 );
