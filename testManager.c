@@ -25,7 +25,7 @@
 
 static uint8_t testUnitaire ( test_el * const el );
 static uint8_t menuManager ( menu_el * const el );
-static uint8_t menuAuto ( menu_el * const el, const char * logFile );
+static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t group );
 static void testPrint ( const test_el * const el );
 
 static uint8_t testUnitaire ( test_el * const el )
@@ -114,7 +114,7 @@ debut:
 	goto debut;
 }
 
-static uint8_t menuAuto ( menu_el * const el, const char * logFile )
+static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t group )
 {
 	uint16_t i;                             // loop counter
 
@@ -141,13 +141,21 @@ static uint8_t menuAuto ( menu_el * const el, const char * logFile )
 
 		if ( el[ i ].menu != NULL )
 		{
-			menuAuto ( el[ i ].menu, logFile );
+			autoExec ( el[ i ].menu, logFile, group );
 		}
 		else if ( ( el[ i ].test != NULL ) &&
 			( el[ i ].test->bits.loopTest == 1 ) &&
 			( ( el[ i ].test->bits.stopOnError == 0 ) ||
 			( el[ i ].test->bits.haveError == 0 ) ) )
 		{
+
+			if ( group &&
+				!( el[ i ].test->type & group ) )
+			{
+				i++;
+				continue;
+			}
+
 			// methode pour desactiver la sortie standard, redirige le stdout sur /dev/null
 			// tout en gardant une cope de stdout dans fd, pour le restorer par la suite
 			// https://stackoverflow.com/questions/13816994/how-to-disable-printf-function
@@ -197,7 +205,7 @@ static uint8_t menuAuto ( menu_el * const el, const char * logFile )
 			}
 
 			printf ( "%15s | ", el[ i ].test->functionName );
-			printf ( "%12s | ", ( el[ i ].test->type == UNITAIRE )?"UNITAIRE":"INTEGRATION" );
+			printf ( "%12s | ", ( ( el[ i ].test->type & TEST_MASK ) == UNITAIRE )?"UNITAIRE":"INTEGRATION" );
 
 			if ( el[ i ].test->bits.isOnError )
 			{
@@ -277,15 +285,100 @@ static void printAllTests ( const menu_el * el )
     }
 }
 
+static void menuAuto ( menu_el * const el, const char * logFile )
+{
+	char buffer[ 10 ];
+	uint16_t choice = 0xffff;
+	struct timeval timeout;
+	fd_set fdSet;
+
+	do
+	{ // what type of tests
+		printf ( "#################################################################\n" );
+		printf ( "    0 - all\n" );
+		printf ( "    1 - group 1\n" );
+		printf ( "    2 - group 2\n" );
+		printf ( "    3   group 3\n" );
+		printf ( "    4   group 4\n" );
+		printf ( "    5   exit\n" );
+		printf ( "#################################################################\n-> " );
+
+		do
+		{
+			scanf ( "%10s", buffer );
+			choice = ( uint16_t ) atoi ( buffer );
+
+			// need to explain each case
+			if ( ( buffer[ 0 ] == '0' ) ||
+				( buffer[ 0 ] == '1' ) ||
+				( buffer[ 0 ] == '2' ) ||
+				( buffer[ 0 ] == '3' ) ||
+				( buffer[ 0 ] == '4' ) ||
+				( buffer[ 0 ] == '5' ) ||
+				( buffer[ 0 ] == '6' ) ||
+				( buffer[ 0 ] == '7' ) ||
+				( buffer[ 0 ] == '8' ) ||
+				( buffer[ 0 ] == '9' ) )
+			{
+				break;
+			}
+			else
+			{
+				printf ( "\e[A\e[2K-> " );
+			}
+		}
+		while ( 1 );
+
+		if ( choice != 0xffff )
+		{
+			break;
+		}
+	}
+	while ( 1 );
+
+	if ( choice == 5 )
+	{
+		return;
+	}
+	else if ( choice )
+	{
+		choice = 1 << ( choice + 3 );
+	}
+
+	printf ( "enter \e[1;32mq\e[0m or \e[1;32mQ\e[0m to quit\n" );
+	printf ( "#################################################################\n" );
+	printf ( "%15s | %12s | %12s | %6s | %s\n", "function name", "test type", " ", "result", "comment" );
+	printf ( "#################################################################\n" );
+
+	do
+	{
+		autoExec ( el, logFile, choice );
+
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		FD_ZERO ( &fdSet );
+		FD_SET ( fileno ( stdin ), &fdSet );
+
+		select ( fileno ( stdin ) + 1, &fdSet, NULL, NULL, &timeout );
+
+		if ( FD_ISSET ( fileno ( stdin ), &fdSet ) )
+		{
+			scanf ( "%10s", buffer );
+			if ( ( *buffer == 'q' ) ||
+				( *buffer == 'Q' ) )
+			{
+				break;
+			}
+		}
+	}
+	while ( 1 );
+}
 
 uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 {
 	char buffer[ 10 ];
 	uint16_t choice = 0;
-	struct timeval timeout;
-
-	fd_set fdSet;
-
 	do
 	{
 		printf ( "#################################################################\n" );
@@ -297,7 +390,7 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 
 		do
 		{
-			scanf ( "%s", buffer );
+			scanf ( "%10s", buffer );
 			choice = ( uint16_t ) atoi ( buffer );
 
 			// need to explain each case
@@ -326,34 +419,7 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 		{
 			case 0:
 			{
-				printf ( "enter \e[1;32mq\e[0m or \e[1;32mQ\e[0m to quit\n" );
-				printf ( "#################################################################\n" );
-				printf ( "%15s | %12s | %16s | %6s | %s\n", "function name", "test type", " ", "result", "comment" );
-				printf ( "#################################################################\n" );
-
-				do
-				{
-					menuAuto ( el, logFile );
-
-					timeout.tv_sec = 1;
-					timeout.tv_usec = 0;
-
-					FD_ZERO ( &fdSet );
-					FD_SET ( fileno ( stdin ), &fdSet );
-
-					select ( fileno ( stdin ) + 1, &fdSet, NULL, NULL, &timeout );
-
-					if ( FD_ISSET ( fileno ( stdin ), &fdSet ) )
-					{
-						scanf ( "%s", buffer );
-						if ( ( *buffer == 'q' ) ||
-							( *buffer == 'Q' ) )
-						{
-							break;
-						}
-					}
-				}
-				while ( 1 );
+				menuAuto ( el, logFile );
 				break;
 			}
 			case 1:

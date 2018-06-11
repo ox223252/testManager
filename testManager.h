@@ -24,7 +24,7 @@
 /// \author ox223252
 /// \date 2017-07
 /// \copyright GPLv2
-/// \version 0.1
+/// \version 0.2
 /// \warning NONE
 /// \bug NONE
 ////////////////////////////////////////////////////////////////////////////////
@@ -38,16 +38,27 @@
 
 typedef enum
 {
-	UNITAIRE,                               ///< use to define a unit test
-	INTEGRATION                             ///< use to define a functional test
+	UNITAIRE = 0x00,                        ///< use to define a unit test
+	INTEGRATION = 0x01,                     ///< use to define a functional test
+	TEST_MASK = 0x01
 } typeOfTest;
+
+typedef enum
+{
+	NO_GROUP = 0x00,
+	GROUP_1 = 0x10,
+	GROUP_2 = 0x20,
+	GROUP_3 = 0x40,
+	GROUP_4 = 0x80,
+	ALL_GROUPS = 0xf0
+} testGroup;
 
 typedef struct _menu_el menu_el;
 typedef struct _test_el test_el;
 
 struct _test_el
 {
-	typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now )
+	typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now ) logical or with TEST_GROUP
 	uint8_t ( * function )( void * arg );   ///< tested function
 	void * arg;                             ///< arg of the tested function
 	uint8_t * result;                       ///< (R/W) pointer on result of function

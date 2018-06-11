@@ -21,7 +21,7 @@ two elements exists:
 	```C
 	struct _test_el
 	{
-		typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now )
+		typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now ) logical or with testGroup
 		uint8_t ( * function )( void * arg );   ///< tested function
 		void * arg;                             ///< arg of the tested function
 		uint8_t * result;                       ///< (R/W) pointer on result of function
@@ -42,6 +42,24 @@ two elements exists:
 	```
 	For the test part, only UNITARY tests are available (for now). The *result* pointer could be set to NULL (but not recommended), all *result* fields can be set with the same variable in function of code implementation.
 
+    The UNITARY test could be used with group selection:
+```C
+    GROUP_1 | UNITAIRE
+```
+    availabe groups are : 
+     - NO_GROUP = 0x00: called only by  menu choice: *all*.
+     - GROUP_1: called by menu choices: *all* and *group 1*
+     - GROUP_2: called by menu choices: *all* and *group 2*
+     - GROUP_3: called by menu choices: *all* and *group 3*
+     - GROUP_4: called by menu choices: *all* and *group 4*
+     - ALL_GROUPS: alled by menu choices: *all*, *group 1*, *group 2*, *group 3* and *group 4*.
+
+    The groups can be mixed like :
+```C
+    GROUP_1 | GROUP_2 | GROUP_3 | UNITAIRE
+``` 
+    > *ALL_GROUPS* = *GROUP_1* | *GROUP_2* | *GROUP_3* | *GROUP_4* = *ALL_GROUPS* | *NO_GROUP*.
+
 	The flag bit field is the most important config part:
 	 - *loopTest*: is used to allow a test function to be used in the auto tests, if it's set to 0 then, only manual test is valid for it,
 	 - *exitOnErrot*: is used to determine a fatal error, if an error occured (funtion return != 0) then main test program stop with a *exit(0)*,
@@ -55,69 +73,70 @@ two elements exists:
 	 The *nbLoop* and *nbError* fields are used to store the number of test on one function and its fail number, it will be usefull when multithreading will be implemented.
 
 ## Need to be done:
+ - [x] added group test
  - [ ] added *INTEGRATION* tests
  - [ ] added multithreading tests
 
 ## Example:
 ```C
 #include <stdio.h>
-#include "testManager/testManager.h"
+#include "lib/testManager/testManager.h"
 
 uint8_t a ( void * arg )
 {
-	static uint8_t i = 0;
-	printf ( "function A\n" );
-	i++;
-	return ( ( i%10 ) == 0 );
+    static uint8_t i = 0;
+    printf ( "function A\n" );
+    i++;
+    return ( ( i%10 ) == 0 );
 }
 
 uint8_t b ( void * arg )
 {
-	printf ( "function b : %s\n", ( char * ) arg );
-	return ( 0 );
+    printf ( "function b : %s\n", ( char * ) arg );
+    return ( 0 );
 }
 
 uint8_t c ( void * arg )
 {
-	return ( 0 );
+    return ( 0 );
 }
 
 uint8_t d ( void * arg )
 {
-	static uint8_t i = 0;
-	if ( i < 5 )
-	{
-		i++;
-		return ( 0 );
-	}
-	return ( 1 );
+    static uint8_t i = 0;
+    if ( i < 5 )
+    {
+        i++;
+        return ( 0 );
+    }
+    return ( 1 );
 }
 
 int main ( void )
 {
-	uint8_t result;
-	test_el A = { UNITAIRE, a, ( void * )NULL, NULL, { 1, 0, 0, 0, 1, 0 }, "funct A", "return error but conitnue", 0, 0 };
-	test_el B = { UNITAIRE, b, "arg from param", ( uint8_t * )&result, { 1, 1, 1, 0, 1, 0 },  "funct B", "commentaire", 0, 0 };
-	test_el C = { UNITAIRE, c, "arg from param", ( uint8_t * )&result, { 0, 0, 0, 0, 0, 0 },  "funct C", "commentaire", 0, 0 };
-	test_el D = { UNITAIRE, d, "arg from param", ( uint8_t * )&result, { 1, 0, 1, 0, 1, 0 },  "funct D", "return error & stop on error", 0, 0 };
-	menu_el subMenu[] = {
-		{ NULL, &C, "comentaire C"  },
-		{ NULL, &D, "commentaire D" },
-		{ NULL, NULL, NULL }
-	};
-	menu_el menu[] = {
-		{ NULL, &A, "comentaire A" },
-		{ NULL, &B, "comentaire B" },
-		{ subMenu, NULL, "menu" },
-		{ NULL, NULL, NULL }
-	};
-	mainMenuTest ( menu, "logFile" );
-	return ( 0 );
+    uint8_t result;
+    test_el A = { GROUP_1 | UNITAIRE, a, ( void * )NULL, NULL, { 1, 0, 0, 0, 1, 0 }, "funct A", "return error but conitnue", 0, 0 };
+    test_el B = { GROUP_1 | GROUP_2 | UNITAIRE, b, "arg from param", ( uint8_t * )&result, { 1, 1, 1, 0, 1, 0 },  "funct B", "commentaire", 0, 0 };
+    test_el C = { UNITAIRE, c, "arg from param", ( uint8_t * )&result, { 0, 0, 0, 0, 0, 0 },  "funct C", "commentaire", 0, 0 };
+    test_el D = { ALL_GROUPS | UNITAIRE, d, "arg from param", ( uint8_t * )&result, { 1, 0, 1, 0, 1, 0 },  "funct D", "return error & stop on error", 0, 0 };
+    menu_el subMenu[] = {
+        { NULL, &C, "comentaire C"  },
+        { NULL, &D, "commentaire D" },
+        { NULL, NULL, NULL }
+    };
+    menu_el menu[] = {
+        { NULL, &A, "comentaire A" },
+        { NULL, &B, "comentaire B" },
+        { subMenu, NULL, "menu" },
+        { NULL, NULL, NULL }
+    };
+    mainMenuTest ( menu, "logFile" );
+    return ( 0 );
 }
 ```
 
 ```Shell
-gcc main.c testManager.c -Wall && ./a.out
+> gcc main.c testManager.c -Wall && ./a.out
 #################################################################
     0 - auto test
     1 - manual test
@@ -125,9 +144,18 @@ gcc main.c testManager.c -Wall && ./a.out
     3   exit
 #################################################################
 -> 0
+#################################################################
+    0 - all
+    1 - group 1
+    2 - group 2
+    3   group 3
+    4   group 4
+    5   exit
+#################################################################
+-> 1
 enter q or Q to quit
 #################################################################
-  function name |    test type |                  | result | comment
+  function name |    test type |              | result | comment
 #################################################################
         funct A |     UNITAIRE | [    0/    1] OK |      . |
         funct B |     UNITAIRE | [    0/    1] OK |      . |
@@ -141,102 +169,7 @@ enter q or Q to quit
         funct A |     UNITAIRE | [    0/    4] OK |      . |
         funct B |     UNITAIRE | [    0/    4] OK |      . |
         funct D |     UNITAIRE | [    0/    4] OK |      . |
-        funct A |     UNITAIRE | [    0/    5] OK |      . |
-        funct B |     UNITAIRE | [    0/    5] OK |      . |
-        funct D |     UNITAIRE | [    0/    5] OK |      . |
-        funct A |     UNITAIRE | [    0/    6] OK |      . |
-        funct B |     UNITAIRE | [    0/    6] OK |      . |
-        funct D |     UNITAIRE | [    1/    6] KO |      1 |return error & stop on error
-        funct A |     UNITAIRE | [    0/    7] OK |      . |
-        funct B |     UNITAIRE | [    0/    7] OK |      . |
-        funct A |     UNITAIRE | [    0/    8] OK |      . |
-        funct B |     UNITAIRE | [    0/    8] OK |      . |
-        funct A |     UNITAIRE | [    0/    9] OK |      . |
-        funct B |     UNITAIRE | [    0/    9] OK |      . |
-        funct A |     UNITAIRE | [    1/   10] KO |  (nil) |return error
-        funct B |     UNITAIRE | [    0/   10] OK |      . |
-        funct A |     UNITAIRE | [    1/   11] OK |      . |
-        funct B |     UNITAIRE | [    0/   11] OK |      . |
-        funct A |     UNITAIRE | [    1/   12] OK |      . |
-        funct B |     UNITAIRE | [    0/   12] OK |      . |
-        funct A |     UNITAIRE | [    1/   13] OK |      . |
-        funct B |     UNITAIRE | [    0/   13] OK |      . |
-        funct A |     UNITAIRE | [    1/   14] OK |      . |
-        funct B |     UNITAIRE | [    0/   14] OK |      . |
-        funct A |     UNITAIRE | [    1/   15] OK |      . |
-        funct B |     UNITAIRE | [    0/   15] OK |      . |
-        funct A |     UNITAIRE | [    1/   16] OK |      . |
-        funct B |     UNITAIRE | [    0/   16] OK |      . |
-        funct A |     UNITAIRE | [    1/   17] OK |      . |
-        funct B |     UNITAIRE | [    0/   17] OK |      . |
-        funct A |     UNITAIRE | [    1/   18] OK |      . |
-        funct B |     UNITAIRE | [    0/   18] OK |      . |
-        funct A |     UNITAIRE | [    1/   19] OK |      . |
-        funct B |     UNITAIRE | [    0/   19] OK |      . |
-        funct A |     UNITAIRE | [    2/   20] KO |  (nil) |return error
-        funct B |     UNITAIRE | [    0/   20] OK |      . |
-        funct A |     UNITAIRE | [    2/   21] OK |      . |
-        funct B |     UNITAIRE | [    0/   21] OK |      . |
-        funct A |     UNITAIRE | [    2/   22] OK |      . |
-        funct B |     UNITAIRE | [    0/   22] OK |      . |
-        funct A |     UNITAIRE | [    2/   23] OK |      . |
-        funct B |     UNITAIRE | [    0/   23] OK |      . |
-        funct A |     UNITAIRE | [    2/   24] OK |      . |
-        funct B |     UNITAIRE | [    0/   24] OK |      . |
-        funct A |     UNITAIRE | [    2/   25] OK |      . |
-        funct B |     UNITAIRE | [    0/   25] OK |      . |
-        funct A |     UNITAIRE | [    2/   26] OK |      . |
-        funct B |     UNITAIRE | [    0/   26] OK |      . |
-        funct A |     UNITAIRE | [    2/   27] OK |      . |
-        funct B |     UNITAIRE | [    0/   27] OK |      . |
-        funct A |     UNITAIRE | [    2/   28] OK |      . |
-        funct B |     UNITAIRE | [    0/   28] OK |      . |
-        funct A |     UNITAIRE | [    2/   29] OK |      . |
-        funct B |     UNITAIRE | [    0/   29] OK |      . |
-        funct A |     UNITAIRE | [    3/   30] KO |  (nil) |return error
-        funct B |     UNITAIRE | [    0/   30] OK |      . |
-        funct A |     UNITAIRE | [    3/   31] OK |      . |
-        funct B |     UNITAIRE | [    0/   31] OK |      . |
-        funct A |     UNITAIRE | [    3/   32] OK |      . |
-        funct B |     UNITAIRE | [    0/   32] OK |      . |
-        funct A |     UNITAIRE | [    3/   33] OK |      . |
-        funct B |     UNITAIRE | [    0/   33] OK |      . |
-        funct A |     UNITAIRE | [    3/   34] OK |      . |
-        funct B |     UNITAIRE | [    0/   34] OK |      . |
-        funct A |     UNITAIRE | [    3/   35] OK |      . |
-        funct B |     UNITAIRE | [    0/   35] OK |      . |
-        funct A |     UNITAIRE | [    3/   36] OK |      . |
-        funct B |     UNITAIRE | [    0/   36] OK |      . |
-        funct A |     UNITAIRE | [    3/   37] OK |      . |
-        funct B |     UNITAIRE | [    0/   37] OK |      . |
-        funct A |     UNITAIRE | [    3/   38] OK |      . |
-        funct B |     UNITAIRE | [    0/   38] OK |      . |
-        funct A |     UNITAIRE | [    3/   39] OK |      . |
-        funct B |     UNITAIRE | [    0/   39] OK |      . |
-        funct A |     UNITAIRE | [    4/   40] KO |  (nil) |return error
-        funct B |     UNITAIRE | [    0/   40] OK |      . |
-        funct A |     UNITAIRE | [    4/   41] OK |      . |
-        funct B |     UNITAIRE | [    0/   41] OK |      . |
-        funct A |     UNITAIRE | [    4/   42] OK |      . |
-        funct B |     UNITAIRE | [    0/   42] OK |      . |
-        funct A |     UNITAIRE | [    4/   43] OK |      . |
-        funct B |     UNITAIRE | [    0/   43] OK |      . |
-        funct A |     UNITAIRE | [    4/   44] OK |      . |
-        funct B |     UNITAIRE | [    0/   44] OK |      . |
-        funct A |     UNITAIRE | [    4/   45] OK |      . |
-        funct B |     UNITAIRE | [    0/   45] OK |      . |
-        funct A |     UNITAIRE | [    4/   46] OK |      . |
-        funct B |     UNITAIRE | [    0/   46] OK |      . |
-        funct A |     UNITAIRE | [    4/   47] OK |      . |
-        funct B |     UNITAIRE | [    0/   47] OK |      . |
-        funct A |     UNITAIRE | [    4/   48] OK |      . |
-        funct B |     UNITAIRE | [    0/   48] OK |      . |
-        funct A |     UNITAIRE | [    4/   49] OK |      . |
-        funct B |     UNITAIRE | [    0/   49] OK |      . |
-        funct A |     UNITAIRE | [    5/   50] KO |  (nil) |return error
-        funct B |     UNITAIRE | [    0/   50] OK |      . |
-        funct A |     UNITAIRE | [    5/   51] OK |      . |
-        funct B |     UNITAIRE | [    0/   51] OK |      . |
+
 q
 #################################################################
     0 - auto test
@@ -272,14 +205,19 @@ loop: 1
 ------------------------------
 name: funct A
 comment: return error
-loop: 51
+loop: 4
 function A
 ------------------------------
 ------------------------------
 name: funct B
 comment: commentaire
-loop: 51
+loop: 4
 function b : arg from param
+------------------------------
+------------------------------
+name: funct D
+comment: return error & stop on error
+loop: 4
 ------------------------------
 >
 ```
