@@ -48,8 +48,7 @@ typedef enum
 	NO_GROUP = 0x00,
 	GROUP_1 = 0x10,
 	GROUP_2 = 0x20,
-	GROUP_3 = 0x40,
-	GROUP_4 = 0x80,
+	GROUP_3 = 0x40,	GROUP_4 = 0x80,
 	ALL_GROUPS = 0xf0
 } testGroup;
 
@@ -97,68 +96,6 @@ struct _menu_el
 ////////////////////////////////////////////////////////////////////////////////
 uint8_t mainMenuTest ( menu_el * const el, const char * logFile );
 
-
-
-////////////////////////////////////////////////////////////////////////////////
-/// \example
-////////////////////////////////////////////////////////////////////////////////
-/// #include <stdio.h>
-/// #include "testManager/testManager.h"
-///
-///
-/// uint8_t a ( void * arg )
-/// {
-/// 	static uint8_t i = 0;
-/// 	printf ( "function A\n" );
-/// 	i++;
-/// 	return ( ( i%10 ) == 0 );
-/// }
-///
-/// uint8_t b ( void * arg )
-/// {
-/// 	printf ( "function b : %s\n", ( char * ) arg );
-/// 	return ( 0 );
-/// }
-///
-/// uint8_t c ( void * arg )
-/// {
-/// 	return ( 0 );
-/// }
-///
-/// uint8_t d ( void * arg )
-/// {
-/// 	static uint8_t i = 0;
-/// 	if ( i < 5 )
-/// 	{
-/// 		i++;
-/// 		return ( 0 );
-/// 	}
-/// 	return ( 1 );
-/// }
-///
-/// int main ( void )
-/// {
-/// 	uint8_t result;
-/// 	test_el A = { UNITAIRE, a, ( void * )NULL, ( uint8_t * )&result, { 1, 0, 0, 0, 1, 0 }, "funct A", "return error", 0, 0 };
-/// 	test_el B = { UNITAIRE, b, "arg from param", ( uint8_t * )&result, { 1, 1, 1, 0, 1, 0 },  "funct B", "commentaire", 0, 0 };
-/// 	test_el C = { UNITAIRE, c, "arg from param", ( uint8_t * )&result, { 0, 0, 0, 0, 0, 0 },  "funct C", "commentaire", 0, 0 };
-/// 	test_el D = { UNITAIRE, d, "arg from param", ( uint8_t * )&result, { 1, 0, 1, 0, 1, 0 },  "funct D", "return error & stop on error", 0, 0 };
-///
-/// 	menu_el subMenu[] = {
-/// 		{ NULL, &C, "comentaire C"  },
-/// 		{ NULL, &D, "commentaire D" },
-/// 		{ NULL, NULL, NULL }
-/// 	};
-/// 	menu_el menu[] = {
-/// 		{ NULL, &A, "comentaire A" },
-/// 		{ NULL, &B, "comentaire B" },
-/// 		{ subMenu, NULL, "menu" },
-/// 		{ NULL, NULL, NULL }
-/// 	};
-/// 	mainMenuTest ( menu, "logFile" );
-/// 	return ( 0 );
-/// }
-////////////////////////////////////////////////////////////////////////////////
 
 #endif
 
