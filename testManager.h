@@ -32,24 +32,29 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#if defined( WITH_TERM_REQUEST )
+#include "../termRequest/request.h"
+#endif
+
 /// \note in this structs all parameters are set by
 /// user and read by system unless if param is precedes
 /// by (R) or (R/W)
 
 typedef enum
 {
-	UNITAIRE = 0x00,                        ///< use to define a unit test
-	INTEGRATION = 0x01,                     ///< use to define a functional test
-	TEST_MASK = 0x01
+    UNIT = 0x00,                            ///< use to define a unit test
+    INTEGRATION = 0x01,                     ///< use to define a functional test
+    TEST_MASK = 0x01
 } typeOfTest;
 
 typedef enum
 {
-	NO_GROUP = 0x00,
-	GROUP_1 = 0x10,
-	GROUP_2 = 0x20,
-	GROUP_3 = 0x40,	GROUP_4 = 0x80,
-	ALL_GROUPS = 0xf0
+    NO_GROUP = 0x00,
+    GROUP_1 = 0x10,
+    GROUP_2 = 0x20,
+    GROUP_3 = 0x40,
+    GROUP_4 = 0x80,
+    ALL_GROUPS = 0xf0
 } testGroup;
 
 typedef struct _menu_el menu_el;
@@ -57,30 +62,30 @@ typedef struct _test_el test_el;
 
 struct _test_el
 {
-	typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now ) logical or with TEST_GROUP
-	uint8_t ( * function )( void * arg );   ///< tested function
-	void * arg;                             ///< arg of the tested function
-	uint8_t * result;                       ///< (R/W) pointer on result of function
-	struct
-	{
-		uint8_t loopTest:1,                 ///< active auto test in loop ( 1 auto test / 0 manual test )
-			exitOnError:1,                  ///< exit of programme if haveError == 1 ( 1 On / 0 Off )
-			stopOnError:1,                  ///< stop test of this function if haveError == 1 ( 1 On / 0 Off )
-			haveError:1,                    ///< (R) set to 1 if error occured in cycle of test ( 1 error occur / 0 no error occur
-			quietOnLoop:1,                  ///< disable printf in tested function ( 1 quiet / 0 verbose )
-			isOnError:1;					///< (R) notify if on the last auto loop the function return an error
-	}bits;
-	char * functionName;                    ///< function name used in description
-	char * commentaire;                     ///< comment displayed in case of auto loop test failled
-	uint32_t nbLoop;                        ///< (R) use to store number of test loop made
-	uint32_t nbError;						///< (R) use to store number of error
+    typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION logical or with TEST_GROUP
+    uint8_t ( * function )( void * arg );   ///< tested function
+    void * arg;                             ///< arg of the tested function
+    uint8_t * result;                       ///< (R/W) pointer on result of function
+    struct
+    {
+        uint8_t loopTest:1,                 ///< active auto test in loop ( 1 auto test / 0 manual test )
+            exitOnError:1,                  ///< exit of programme if haveError == 1 ( 1 On / 0 Off )
+            stopOnError:1,                  ///< stop test of this function if haveError == 1 ( 1 On / 0 Off )
+            haveError:1,                    ///< (R) set to 1 if error occured in cycle of test ( 1 error occur / 0 no error occur
+            quietOnLoop:1,                  ///< disable printf in tested function ( 1 quiet / 0 verbose )
+            isOnError:1;                    ///< (R) notify if on the last auto loop the function return an error
+    }bits;
+    char * functionName;                    ///< function name used in description
+    char * commentaire;                     ///< comment displayed in case of auto loop test failled
+    uint32_t nbLoop;                        ///< (R) use to store number of test loop made
+    uint32_t nbError;                       ///< (R) use to store number of error
 };
 
 struct _menu_el
 {
-	menu_el * menu;                         ///< pointer on sub menu
-	test_el * test;                         ///< pointer on test
-	char * comment;                         ///< comment to explain what for
+    menu_el * menu;                         ///< pointer on sub menu
+    test_el * test;                         ///< pointer on test
+    char * comment;                         ///< comment to explain what for
 };
 
 ////////////////////////////////////////////////////////////////////////////////

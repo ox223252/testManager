@@ -10,9 +10,9 @@ This code is designed to manage auto test, you can set test function, what will 
 typedef menu_el struct _menu_el;
 struct _menu_el
 {
-	menu_el * menu;                         ///< pointer on sub menu
-	test_el * test;                         ///< pointer on test
-	char * comment;                         ///< comment to explain what for
+    menu_el * menu;                         ///< pointer on sub menu
+    test_el * test;                         ///< pointer on test
+    char * comment;                         ///< comment to explain what for
 }
 ```
 The *menu* field should be used to set a submenu, the *test* field should be used to set tests functions, and the comment is the text information displayed close to the menu's display. Only *menu* or *test* should be set, if they are both set only *menu* will be used.
@@ -21,40 +21,43 @@ The *menu* field should be used to set a submenu, the *test* field should be use
 ```C
 struct _test_el
 {
-	typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION ( no used now ) logical or with testGroup
-	uint8_t ( * function )( void * arg );   ///< tested function
-	void * arg;                             ///< arg of the tested function
-	uint8_t * result;                       ///< (R/W) pointer on result of function
-	struct
-	{
-		uint8_t loopTest:1,                 ///< active auto test in loop ( 1 auto test / 0 manual test )
-			exitOnError:1,                  ///< exit of programme if haveError == 1 ( 1 On / 0 Off )
-			stopOnError:1,                  ///< stop test of this function if haveError == 1 ( 1 On / 0 Off )
-			haveError:1,                    ///< (R) set to 1 if error occured in cycle of test ( 1 error occur / 0 no error occur
-			quietOnLoop:1,                  ///< disable printf in tested function ( 1 quiet / 0 verbose )
-			isOnError:1;					///< (R) notify if on the last auto loop the function return an error
-	}bits;
-	char * functionName;                    ///< function name used in description
-	char * commentaire;                     ///< comment displayed in case of auto loop test failled
-	uint32_t nbLoop;                        ///< (R) use to store number of test loop made
-	uint32_t nbError;						///< (R) use to store number of error
+    typeOfTest type;                        ///< type of test UNITAIRE / INTEGRATION logical or with TEST_GROUP
+    uint8_t ( * function )( void * arg );   ///< tested function
+    void * arg;                             ///< arg of the tested function
+    uint8_t * result;                       ///< (R/W) pointer on result of function
+    struct
+    {
+        uint8_t loopTest:1,                 ///< active auto test in loop ( 1 auto test / 0 manual test )
+            exitOnError:1,                  ///< exit of programme if haveError == 1 ( 1 On / 0 Off )
+            stopOnError:1,                  ///< stop test of this function if haveError == 1 ( 1 On / 0 Off )
+            haveError:1,                    ///< (R) set to 1 if error occured in cycle of test ( 1 error occur / 0 no error occur
+            quietOnLoop:1,                  ///< disable printf in tested function ( 1 quiet / 0 verbose )
+            isOnError:1;                    ///< (R) notify if on the last auto loop the function return an error
+    }bits;
+    char * functionName;                    ///< function name used in description
+    char * commentaire;                     ///< comment displayed in case of auto loop test failled
+    uint32_t nbLoop;                        ///< (R) use to store number of test loop made
+    uint32_t nbError;                       ///< (R) use to store number of error
 };
 ```
 #### *typeOfTest type*:
-Only UNITARY tests are available (for now). 
+The UNIT or INTEGRATION test could be used with group selection: ``GROUP_1 | UNIT``
 
-   The UNITARY test could be used with group selection: ``GROUP_1 | UNITAIRE``
-    availabe groups are : 
-     - NO_GROUP = 0x00: called only by  menu choice: *all*.
-     - GROUP_1: called by menu choices: *all* and *group 1*
-     - GROUP_2: called by menu choices: *all* and *group 2*
-     - GROUP_3: called by menu choices: *all* and *group 3*
-     - GROUP_4: called by menu choices: *all* and *group 4*
-     - ALL_GROUPS: alled by menu choices: *all*, *group 1*, *group 2*, *group 3* and *group 4*.
-     
-The groups can be mixed like : ``GROUP_1 | GROUP_3 | UNITAIRE``
+
+availabe groups are : 
+ - NO_GROUP = 0x00: called only by  menu choice: *all*.
+ - GROUP_1: called by menu choices: *all* and *group 1*,
+ - GROUP_2: called by menu choices: *all* and *group 2*,
+ - GROUP_3: called by menu choices: *all* and *group 3*,
+ - GROUP_4: called by menu choices: *all* and *group 4*,
+ - ALL_GROUPS: alled by menu choices: *all*, *group 1*, *group 2*, *group 3* and *group 4*.
+
+The groups can be mixed like : ``GROUP_1 | GROUP_3 | UNIT``
 
 > *ALL_GROUPS* = *GROUP_1* | *GROUP_2* | *GROUP_3* | *GROUP_4* = *ALL_GROUPS* | *NO_GROUP*.
+
+##### UNIT/INTEGRATION :
+This flag doesn't impact how to this code worked. It more important for you to know how do what :D .
 
 #### *function*: 
 This is a pointer to the function what should be executed.
@@ -83,7 +86,7 @@ These fields are used to improve log analysis.
 
 ## Need to be done:
  - [x] added group test
- - [ ] added *INTEGRATION* tests
+ - [x] added *INTEGRATION* tests
  - [ ] added multithreading tests
 
 ## Example:
@@ -230,3 +233,6 @@ loop: 4
 ------------------------------
 >
 ```
+
+## Note:
+If you are using termRequest lib in addintion to this one you can define `WITH_TERM_REQUEST` to improve menu management.

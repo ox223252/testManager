@@ -23,12 +23,12 @@
 
 #include "testManager.h"
 
-static uint8_t testUnitaire ( test_el * const el );
+static uint8_t test ( test_el * const el );
 static uint8_t menuManager ( menu_el * const el );
 static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t group );
 static void testPrint ( const test_el * const el );
 
-static uint8_t testUnitaire ( test_el * const el )
+static uint8_t test ( test_el * const el )
 {
 	if ( el->result )
 	{
@@ -59,45 +59,105 @@ static uint8_t menuManager ( menu_el * const el )
 	uint16_t choice;                        // buffer cast to int
 
 debut:
+
 	printf ( "#################################################################\n" );
-	for ( i = 0; el[ i ].menu != NULL || el[ i ].test != NULL || el[ i ].comment != NULL; i++ )
-	{
-		if ( el[ i ].comment != NULL )
+	#ifdef __REQUEST_H__
+		// count number of elements
+		for ( i = 0; el[ i ].menu || el[ i ].test || el[ i ].comment; i++ );
+
+		// set choice as exit request
+		choice = i;
+		
+		// create menu
+		char **tmpMenu = malloc ( sizeof ( *tmpMenu ) * i + 2 );
+		if ( !tmpMenu )
 		{
-			if ( el[ i ].menu != NULL )
+			return ( 1 );
+		}
+
+		// create exit label
+		tmpMenu[ i ] = malloc ( 14 );
+		if ( !tmpMenu[ i ] )
+		{
+			goto freeTmpMenu;
+		}
+		sprintf ( tmpMenu[ i ], "%5s   exit", " " );
+
+		// set the last element as NULL, mandatody by temrRequest lib usage
+		tmpMenu[ i + 1 ] = NULL;
+
+		// set menu elements
+		for ( i = 0; el[ i ].menu || el[ i ].test || el[ i ].comment; i++ )
+		{
+			tmpMenu[ i ] = malloc ( strlen( el[ i ].comment ) + 16 );
+
+			if ( tmpMenu[ i ] )
 			{
-				printf ( "%5d - menu : %s\n", i, el[ i ].comment );
+				if ( el[ i ].menu )
+				{
+					sprintf ( tmpMenu[ i ], "%5d - menu : %s", i, el[ i ].comment );
+				}
+				else if ( el[ i ].test)
+				{
+					sprintf ( tmpMenu[ i ], "%5d - test : %s", i, el[ i ].comment );
+				}
+				else
+				{
+					sprintf ( tmpMenu[ i ], "%5s   %s", " ", el[ i ].comment );
+				}
 			}
-			else if ( el [ i ].test != NULL )
+		}
+
+		choice = menu ( 0, tmpMenu, NULL );
+
+		for ( i = 0; el[ i ].menu != NULL || el[ i ].test != NULL || el[ i ].comment != NULL; i++ )
+		{
+			free ( tmpMenu[ i ] );
+			tmpMenu[ i ] = NULL;
+		}
+freeTmpMenu:
+		free ( tmpMenu );
+		tmpMenu = NULL;
+	#else
+		for ( i = 0; el[ i ].menu != NULL || el[ i ].test != NULL || el[ i ].comment != NULL; i++ )
+		{
+			if ( el[ i ].comment != NULL )
 			{
-				printf ( "%5d - test : %s\n", i, el[ i ].comment );
+				if ( el[ i ].menu != NULL )
+				{
+					printf ( "%5d - menu : %s\n", i, el[ i ].comment );
+				}
+				else if ( el [ i ].test != NULL )
+				{
+					printf ( "%5d - test : %s\n", i, el[ i ].comment );
+				}
+				else
+				{
+					printf ( "%5s   %s\n", " ", el[ i ].comment );
+				}
+			}
+		}
+		printf ( "%5d - exit\n", i );
+		printf ( "#################################################################\n-> " );
+
+		do
+		{
+			scanf ( "%s", buffer );
+			choice = ( uint16_t ) atoi ( buffer );
+
+			if ( ( choice <= i ) &&
+				( buffer[ 0 ] >= '0' ) &&
+				( buffer[ 0 ] <= '9' ) )
+			{ // if choice is valid
+				break;
 			}
 			else
-			{
-				printf ( "%5s   %s\n", " ", el[ i ].comment );
+			{ // invalid choice
+				printf ( "\e[A\e[2K-> " );  // clean entry
 			}
 		}
-	}
-	printf ( "%5d - exit\n", i );
-	printf ( "#################################################################\n-> " );
-
-	do
-	{
-		scanf ( "%s", buffer );
-		choice = ( uint16_t ) atoi ( buffer );
-
-		if ( ( choice <= i ) &&
-			( buffer[ 0 ] >= '0' ) &&
-			( buffer[ 0 ] <= '9' ) )
-		{ // if choice is valid
-			break;
-		}
-		else
-		{ // invalid choice
-			printf ( "\e[A\e[2K-> " );  // clean entry
-		}
-	}
-	while ( 1 );
+		while ( 1 );
+	#endif
 
 	if  ( choice == i )
 	{
@@ -109,7 +169,7 @@ debut:
 	}
 	else if ( el[ choice ].test != NULL )
 	{
-		testUnitaire ( el[ choice ].test );
+		test ( el[ choice ].test );
 	}
 	goto debut;
 }
@@ -187,7 +247,7 @@ static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t grou
 				printf ( "loop: %d\n", el[ i ].test->nbLoop );
 			}
 
-			testUnitaire ( el[ i ].test );
+			test ( el[ i ].test );
 
 			if ( flag.validLogFile )
 			{
@@ -257,7 +317,10 @@ static void testPrint ( const test_el * const el )
 	printf ( "fonction adresse : %10p \n", el->function );
 	printf ( "arg adresse :      %10p \n", el->arg );
 	printf ( "result adresse :   %10p \n", el->result );
-	printf ( "result value :     %10d \n", ( uint8_t )*el->result );
+	if ( el->result )
+	{
+		printf ( "       value :     %10d \n", ( uint8_t )*el->result );
+	}
 	printf ( "flags : loopTest :    %7d \n", el->bits.loopTest );
 	printf ( "        exitOnError : %7d \n", el->bits.exitOnError );
 	printf ( "        stopOnError : %7d \n", el->bits.stopOnError );
@@ -274,9 +337,9 @@ static void printAllTests ( const menu_el * el )
 	{
     	if ( el[ i ].menu != NULL )
 		{
-			printf ( "\e[1;31mmenu_in\e[0m:  %s\n", el->comment );
+			printf ( "\e[1;31mmenu_in\e[0m:  %s\n", el[i].comment );
 			printAllTests ( el[ i ].menu );
-			printf ( "\e[1;31mmenu_out\e[0m: %s\n", el->comment );
+			printf ( "\e[1;31mmenu_out\e[0m: %s\n", el[i].comment );
 		}
 		else if ( el[ i ].test != NULL )
 		{
@@ -292,49 +355,45 @@ static void menuAuto ( menu_el * const el, const char * logFile )
 	struct timeval timeout;
 	fd_set fdSet;
 
-	do
-	{ // what type of tests
-		printf ( "#################################################################\n" );
-		printf ( "    0 - all\n" );
-		printf ( "    1 - group 1\n" );
-		printf ( "    2 - group 2\n" );
-		printf ( "    3   group 3\n" );
-		printf ( "    4   group 4\n" );
-		printf ( "    5   exit\n" );
-		printf ( "#################################################################\n-> " );
-
+	printf ( "#################################################################\n" );
+	#ifdef __REQUEST_H__
+		choice = menu ( 0, (char *[]){ "all", "group 1", "group 2", "group 3", "group 4", "exit", NULL }, NULL );
+	#else
 		do
-		{
-			scanf ( "%10s", buffer );
-			choice = ( uint16_t ) atoi ( buffer );
+		{ // what type of tests
+			printf ( "    0 - all\n" );
+			printf ( "    1 - group 1\n" );
+			printf ( "    2 - group 2\n" );
+			printf ( "    3   group 3\n" );
+			printf ( "    4   group 4\n" );
+			printf ( "    5   exit\n" );
+			printf ( "#################################################################\n-> " );
 
-			// need to explain each case
-			if ( ( buffer[ 0 ] == '0' ) ||
-				( buffer[ 0 ] == '1' ) ||
-				( buffer[ 0 ] == '2' ) ||
-				( buffer[ 0 ] == '3' ) ||
-				( buffer[ 0 ] == '4' ) ||
-				( buffer[ 0 ] == '5' ) ||
-				( buffer[ 0 ] == '6' ) ||
-				( buffer[ 0 ] == '7' ) ||
-				( buffer[ 0 ] == '8' ) ||
-				( buffer[ 0 ] == '9' ) )
+			do
+			{
+				scanf ( "%10s", buffer );
+				choice = ( uint16_t ) atoi ( buffer );
+
+				// need to explain each case
+				if ( ( buffer[ 0 ] >= '0' ) &&
+					( buffer[ 0 ] <= '5' ) )
+				{
+					break;
+				}
+				else
+				{
+					printf ( "\e[A\e[2K-> " );
+				}
+			}
+			while ( 1 );
+
+			if ( choice != 0xffff )
 			{
 				break;
 			}
-			else
-			{
-				printf ( "\e[A\e[2K-> " );
-			}
 		}
 		while ( 1 );
-
-		if ( choice != 0xffff )
-		{
-			break;
-		}
-	}
-	while ( 1 );
+	#endif
 
 	if ( choice == 5 )
 	{
@@ -365,6 +424,7 @@ static void menuAuto ( menu_el * const el, const char * logFile )
 		if ( FD_ISSET ( fileno ( stdin ), &fdSet ) )
 		{
 			scanf ( "%10s", buffer );
+			
 			if ( ( *buffer == 'q' ) ||
 				( *buffer == 'Q' ) )
 			{
@@ -382,38 +442,33 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 	do
 	{
 		printf ( "#################################################################\n" );
-		printf ( "    0 - auto test\n" );
-		printf ( "    1 - manual test\n" );
-		printf ( "    2 - print tests\n" );
-		printf ( "    3   exit\n" );
-		printf ( "#################################################################\n-> " );
+		#ifdef __REQUEST_H__
+			choice = menu ( 0, (char *[]){ "auto test", "manual test", "print tests", "exit", NULL }, NULL );
+		#else
+			printf ( "    0 - auto test\n" );
+			printf ( "    1 - manual test\n" );
+			printf ( "    2 - print tests\n" );
+			printf ( "    3   exit\n" );
+			printf ( "#################################################################\n-> " );
 
-		do
-		{
-			scanf ( "%10s", buffer );
-			choice = ( uint16_t ) atoi ( buffer );
+			do
+			{
+				scanf ( "%10s", buffer );
+				choice = ( uint16_t ) atoi ( buffer );
 
-			// need to explain each case
-			if ( ( choice <= 3 ) &&
-				( ( buffer[ 0 ] == '0' ) ||
-				( buffer[ 0 ] == '1' ) ||
-				( buffer[ 0 ] == '2' ) ||
-				( buffer[ 0 ] == '3' ) ||
-				( buffer[ 0 ] == '4' ) ||
-				( buffer[ 0 ] == '5' ) ||
-				( buffer[ 0 ] == '6' ) ||
-				( buffer[ 0 ] == '7' ) ||
-				( buffer[ 0 ] == '8' ) ||
-				( buffer[ 0 ] == '9' ) ) )
-			{
-				break;
+				// need to explain each case
+				if ( ( buffer[ 0 ] >= '0' ) &&
+					( buffer[ 0 ] <= '3' ) )
+				{
+					break;
+				}
+				else
+				{
+					printf ( "\e[A\e[2K-> " );
+				}
 			}
-			else
-			{
-				printf ( "\e[A\e[2K-> " );
-			}
-		}
-		while ( 1 );
+			while ( 1 );
+		#endif
 
 		switch ( choice )
 		{
@@ -429,7 +484,7 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 			}
 			case 2:
 			{
-					printAllTests ( el );
+				printAllTests ( el );
 				break;
 			}
 			default:
