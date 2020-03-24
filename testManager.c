@@ -25,7 +25,7 @@
 
 static uint8_t test ( test_el * const el );
 static uint8_t menuManager ( menu_el * const el );
-static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t group );
+static uint8_t autoExec ( menu_el * const el, const char * logFile, uint32_t group );
 static void testPrint ( const test_el * const el );
 
 static uint8_t test ( test_el * const el )
@@ -56,11 +56,11 @@ static uint8_t menuManager ( menu_el * const el )
 {
 	uint16_t i;                             // loop counter
 	char buffer[ 10 ];                      // stdin scanf buffer
-	uint16_t choice;                        // buffer cast to int
+	uint32_t choice;                        // buffer cast to int
 
 debut:
 
-	printf ( "#################################################################\n" );
+	printf ( "#####################################################################\n" );
 	#ifdef __REQUEST_H__
 		// count number of elements
 		for ( i = 0; el[ i ].menu || el[ i ].test || el[ i ].comment; i++ );
@@ -138,7 +138,7 @@ freeTmpMenu:
 			}
 		}
 		printf ( "%5d - exit\n", i );
-		printf ( "#################################################################\n-> " );
+		printf ( "#####################################################################\n-> " );
 
 		do
 		{
@@ -174,7 +174,7 @@ freeTmpMenu:
 	goto debut;
 }
 
-static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t group )
+static uint8_t autoExec ( menu_el * const el, const char * logFile, uint32_t group )
 {
 	uint16_t i;                             // loop counter
 
@@ -265,7 +265,7 @@ static uint8_t autoExec ( menu_el * const el, const char * logFile, uint8_t grou
 			}
 
 			printf ( "%15s | ", el[ i ].test->functionName );
-			printf ( "%12s | ", ( ( el[ i ].test->type & TEST_MASK ) == UNITAIRE )?"UNITAIRE":"INTEGRATION" );
+			printf ( "%12s | ", ( ( el[ i ].test->type & TEST_MASK ) == UNIT )?"UNIT":"INTEGRATION" );
 
 			if ( el[ i ].test->bits.isOnError )
 			{
@@ -313,7 +313,7 @@ static void testPrint ( const test_el * const el )
 {
 	printf ( "-----------------------------\n" );
 	printf ( "fonction : %18s \n", el->functionName );
-	printf ( "type de tests :    %10s \n", ( el->type == UNITAIRE )?"UNITAIRE":"INTEGRATION" );
+	printf ( "type de tests :    %10s \n", ( el->type == UNIT )?"UNIT":"INTEGRATION" );
 	printf ( "fonction adresse : %10p \n", el->function );
 	printf ( "arg adresse :      %10p \n", el->arg );
 	printf ( "result adresse :   %10p \n", el->result );
@@ -351,23 +351,27 @@ static void printAllTests ( const menu_el * el )
 static void menuAuto ( menu_el * const el, const char * logFile )
 {
 	char buffer[ 10 ];
-	uint16_t choice = 0xffff;
+	uint32_t choice = 0xffff;
 	struct timeval timeout;
 	fd_set fdSet;
+	int exitValue = 0;
 
-	printf ( "#################################################################\n" );
+	while ( testLevelTitle[ exitValue ] )
+	{
+		exitValue++;
+	}
+
+	printf ( "#####################################################################\n" );
 	#ifdef __REQUEST_H__
-		choice = menu ( 0, (char *[]){ "all", "group 1", "group 2", "group 3", "group 4", "exit", NULL }, NULL );
+		choice = menu ( 0, testLevelTitle, NULL );
 	#else
 		do
 		{ // what type of tests
-			printf ( "    0 - all\n" );
-			printf ( "    1 - group 1\n" );
-			printf ( "    2 - group 2\n" );
-			printf ( "    3   group 3\n" );
-			printf ( "    4   group 4\n" );
-			printf ( "    5   exit\n" );
-			printf ( "#################################################################\n-> " );
+			for ( int i = 0; i < exitValue; i++ )
+			{
+				printf ( "    %d - %s\n", i, testLevelTitle[ i ] );
+			}
+			printf ( "#####################################################################\n-> " );
 
 			do
 			{
@@ -375,8 +379,9 @@ static void menuAuto ( menu_el * const el, const char * logFile )
 				choice = ( uint16_t ) atoi ( buffer );
 
 				// need to explain each case
-				if ( ( buffer[ 0 ] >= '0' ) &&
-					( buffer[ 0 ] <= '5' ) )
+				if ( choice < exitValue &&
+					( buffer[ 0 ] >= '0' ) &&
+					( buffer[ 0 ] <= '9' ) )
 				{
 					break;
 				}
@@ -405,9 +410,9 @@ static void menuAuto ( menu_el * const el, const char * logFile )
 	}
 
 	printf ( "enter \e[1;32mq\e[0m or \e[1;32mQ\e[0m to quit\n" );
-	printf ( "#################################################################\n" );
-	printf ( "%15s | %12s | %12s | %6s | %s\n", "function name", "test type", " ", "result", "comment" );
-	printf ( "#################################################################\n" );
+	printf ( "#####################################################################\n" );
+	printf ( "%15s | %12s | %16s | %6s | %s\n", "function name", "test type", " ", "result", "comment" );
+	printf ( "#####################################################################\n" );
 
 	do
 	{
@@ -441,7 +446,7 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 	uint16_t choice = 0;
 	do
 	{
-		printf ( "#################################################################\n" );
+		printf ( "#####################################################################\n" );
 		#ifdef __REQUEST_H__
 			choice = menu ( 0, (char *[]){ "auto test", "manual test", "print tests", "exit", NULL }, NULL );
 		#else
@@ -449,7 +454,7 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 			printf ( "    1 - manual test\n" );
 			printf ( "    2 - print tests\n" );
 			printf ( "    3   exit\n" );
-			printf ( "#################################################################\n-> " );
+			printf ( "#####################################################################\n-> " );
 
 			do
 			{
@@ -496,5 +501,88 @@ uint8_t mainMenuTest ( menu_el * const el, const char * logFile )
 	}
 	while ( 1 );
 
+	return ( 0 );
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// test part
+
+static int max ( int a, int b )
+{
+	return ( (a>b)?a:b );
+}
+
+#define MAX(a,b) ((a>b)?a:b)
+
+static uint8_t testFnc ( void * arg )
+{
+	int a = 5;
+	int b = 6;
+	int ret = max ( a++, --b );
+
+	if ( ( ret != 5 ) ||
+		( a != 6 ) ||
+		( b != 5 ) )
+	{
+		return ( 1 );
+	}
+
+    return ( 0 );
+}
+
+static uint8_t testDef ( void * arg )
+{
+	int a = 5;
+	int b = 6;
+	int ret = MAX ( a++, --b );
+
+	if ( ( ret != 5 ) ||
+		( a != 6 ) ||
+		( b != 5 ) )
+	{
+		return ( 1 );
+	}
+
+    return ( 0 );
+}
+
+int __attribute__((weak)) main ( void )
+{
+	uint8_t result;
+	test_el tFnc = {
+		.type = UNIT,
+		.function = testFnc,
+		.arg = NULL,
+		.result = NULL,
+		.bits = {
+			.loopTest = 1,
+			.exitOnError = 0,
+			.stopOnError = 0,
+			.quietOnLoop = 0
+		},
+		.functionName = "max",
+		.commentaire = ""
+	};
+	test_el tDef = {
+		.type = UNIT,
+		.function = testDef,
+		.arg = NULL,
+		.result = NULL,
+		.bits = {
+			.loopTest = 1,
+			.exitOnError = 0,
+			.stopOnError = 0,
+			.quietOnLoop = 0
+		},
+		.functionName = "MAX",
+		.commentaire = ""
+	};
+	menu_el testMax[] = {
+		{ NULL, &tFnc, "test du max by function"  },
+		{ NULL, &tDef, "test du max by define" },
+		{ NULL, NULL, NULL }
+	};
+	mainMenuTest ( testMax, NULL );
 	return ( 0 );
 }

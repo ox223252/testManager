@@ -24,7 +24,7 @@
 /// \author ox223252
 /// \date 2017-07
 /// \copyright GPLv2
-/// \version 0.2
+/// \version 0.3
 /// \warning NONE
 /// \bug NONE
 ////////////////////////////////////////////////////////////////////////////////
@@ -32,8 +32,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#if defined( WITH_TERM_REQUEST )
-#include "../termRequest/request.h"
+#if defined __has_include 
+    #if __has_include("../termRequest/menu.h")
+        #include "../termRequest/menu.h"
+        #include "../termRequest/request.h"
+    #endif
 #endif
 
 /// \note in this structs all parameters are set by
@@ -47,15 +50,25 @@ typedef enum
     TEST_MASK = 0x01
 } typeOfTest;
 
+/// \brief this enum is used to create group for tests, you should set only on
+///     bit for each group, teh for LSB bits are reserved, soo available bits
+///     are 0x00000010 to 0x80000000 (24 groups)
 typedef enum
 {
-    NO_GROUP = 0x00,
-    GROUP_1 = 0x10,
-    GROUP_2 = 0x20,
-    GROUP_3 = 0x40,
-    GROUP_4 = 0x80,
-    ALL_GROUPS = 0xf0
+    NO_GROUP = 0x00000000,
+    GROUP_1 = 0x00000010,
+    ALL_GROUPS = 0xfffffff0
 } testGroup;
+
+/// \brief used to changed the displayed menu for auto tests
+static const char * testLevelTitle[] = {
+    "all", /// \need to be at the first place, all select every test even the
+        /// tests not taged as GROUP_X
+    "group 1",
+    "exit", // need to be the last
+    NULL
+};
+
 
 typedef struct _menu_el menu_el;
 typedef struct _test_el test_el;

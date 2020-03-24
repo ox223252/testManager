@@ -43,21 +43,20 @@ struct _test_el
 #### *typeOfTest type*:
 The UNIT or INTEGRATION test could be used with group selection: ``GROUP_1 | UNIT``
 
+Groups or Levels should be defined by user in the **testGroup** enum, you can change the header to define up to 24 different groups, each group should be defined with one bit set. In addition you can personalize the auto displayed menu by changing the **testLevelTitle** var.
+The four first are reserved -> you can defined groups on each bit between the fifth to the 32.
 
 availabe groups are : 
  - NO_GROUP = 0x00: called only by  menu choice: *all*.
- - GROUP_1: called by menu choices: *all* and *group 1*,
- - GROUP_2: called by menu choices: *all* and *group 2*,
- - GROUP_3: called by menu choices: *all* and *group 3*,
- - GROUP_4: called by menu choices: *all* and *group 4*,
- - ALL_GROUPS: alled by menu choices: *all*, *group 1*, *group 2*, *group 3* and *group 4*.
+ - GROUP_X: called by menu choices: *all* and *group X*,
+ - ALL_GROUPS: called by menu choices: *all*, *group 1*, *group 2*, *group 3* and *group 4*.
 
 The groups can be mixed like : ``GROUP_1 | GROUP_3 | UNIT``
 
-> *ALL_GROUPS* = *GROUP_1* | *GROUP_2* | *GROUP_3* | *GROUP_4* = *ALL_GROUPS* | *NO_GROUP*.
+> *ALL_GROUPS* = *GROUP_X* | *GROUP_Y* | *GROUP_Z*.
 
 ##### UNIT/INTEGRATION :
-This flag doesn't impact how to this code worked. It more important for you to know how do what :D .
+This flag doesn't impact how to this code worked. It more important for you to know who do what :D .
 
 #### *function*: 
 This is a pointer to the function what should be executed.
@@ -82,7 +81,7 @@ These fields are used to improve log analysis.
 
 #### *nbLoop* / *nbError*:
 
- These fields are used to store the number of test on one function and its fail number, it will be usefull when multithreading will be implemented.
+ These fields are used to store the number of test on one function and its fail number, it will be useful when multithreading will be implemented.
 
 ## Need to be done:
  - [x] added group test
@@ -127,10 +126,10 @@ uint8_t d ( void * arg )
 int main ( void )
 {
     uint8_t result;
-    test_el A = { GROUP_1 | UNITAIRE, a, ( void * )NULL, NULL, { 1, 0, 0, 0, 1, 0 }, "funct A", "return error but conitnue", 0, 0 };
-    test_el B = { GROUP_1 | GROUP_2 | UNITAIRE, b, "arg from param", ( uint8_t * )&result, { 1, 1, 1, 0, 1, 0 },  "funct B", "commentaire", 0, 0 };
-    test_el C = { UNITAIRE, c, "arg from param", ( uint8_t * )&result, { 0, 0, 0, 0, 0, 0 },  "funct C", "commentaire", 0, 0 };
-    test_el D = { ALL_GROUPS | UNITAIRE, d, "arg from param", ( uint8_t * )&result, { 1, 0, 1, 0, 1, 0 },  "funct D", "return error & stop on error", 0, 0 };
+    test_el A = { GROUP_1 | UNIT, a, ( void * )NULL, NULL, { 1, 0, 0, 0, 1, 0 }, "funct A", "return error but conitnue", 0, 0 };
+    test_el B = { GROUP_1 | GROUP_2 | UNIT, b, "arg from param", ( uint8_t * )&result, { 1, 1, 1, 0, 1, 0 },  "funct B", "commentaire", 0, 0 };
+    test_el C = { UNIT, c, "arg from param", ( uint8_t * )&result, { 0, 0, 0, 0, 0, 0 },  "funct C", "commentaire", 0, 0 };
+    test_el D = { ALL_GROUPS | UNIT, d, "arg from param", ( uint8_t * )&result, { 1, 0, 1, 0, 1, 0 },  "funct D", "return error & stop on error", 0, 0 };
     menu_el subMenu[] = {
         { NULL, &C, "comentaire C"  },
         { NULL, &D, "commentaire D" },
@@ -233,6 +232,3 @@ loop: 4
 ------------------------------
 >
 ```
-
-## Note:
-If you are using termRequest lib in addintion to this one you can define `WITH_TERM_REQUEST` to improve menu management.
